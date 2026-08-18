@@ -1,13 +1,28 @@
 {
   "name": "create-faiz-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "Professional Node.js backend generator",
+  "main": "bin/cli.js",
+  "type": "module",
+  "bin": {
+    "create-faiz-backend": "./bin/cli.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "files": [
+    "bin",
+    "templates",
+    "frontend"
+  ],
+  "scripts": {
+    "test": "echo \"No tests specified\""
+  },
+  "keywords": [
+    "backend",
+    "generator",
+    "nodejs",
+    "express",
+    "prisma",
+    "drizzle"
+  ],
+  "author": "Faiz Khan",
+  "license": "ISC"
 }

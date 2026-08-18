@@ -1,16 +1,67 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-const { execSync } = require("child_process");
+// ==================================================
+// IMPORTS
+// ==================================================
+
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+  copyFileSync,
+  rmSync,
+  readFileSync,
+  writeFileSync
+} from "fs";
+
+import {
+  join,
+  resolve,
+  dirname
+} from "path";
+
+import {
+  homedir
+} from "os";
+
+import {
+  execSync
+} from "child_process";
+
+import {
+  fileURLToPath
+} from "url";
+
+// ==================================================
+// ES MODULE __dirname FIX
+// ==================================================
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // ==================================================
 // COMMAND LINE ARGUMENTS
+//
+// Usage:
+//
+// node bin/cli.js project-name
+//
+// node bin/cli.js project-name destination database orm auth validation
+//
+// Example:
+//
+// node bin/cli.js my-api "" mysql prisma true true
+//
 // ==================================================
 
 const projectName = process.argv[2];
-const customDestination = process.argv[3];
+
+const customDestination =
+  process.argv[3] &&
+  process.argv[3].trim() !== ""
+    ? process.argv[3]
+    : null;
 
 const database = (
   process.argv[4] || "mysql"
@@ -43,7 +94,7 @@ const validOrms = [
 ];
 
 // ==================================================
-// PROJECT NAME
+// PROJECT NAME VALIDATION
 // ==================================================
 
 if (!projectName) {
@@ -62,10 +113,6 @@ if (!projectName) {
 
   process.exit(1);
 }
-
-// ==================================================
-// PROJECT NAME VALIDATION
-// ==================================================
 
 if (!/^[a-zA-Z0-9_-]+$/.test(projectName)) {
   console.log("");
@@ -90,6 +137,7 @@ if (!validDatabases.includes(database)) {
   console.log(
     `❌ Invalid database: ${database}`
   );
+
   console.log("");
 
   console.log(
@@ -140,13 +188,13 @@ if (
 ) {
   console.log("");
   console.log(
-    "❌ MongoDB + Drizzle is not supported."
+    "❌ MongoDB + Drizzle is not supported by this generator."
   );
 
   console.log("");
 
   console.log(
-    "Please select Prisma for MongoDB."
+    "Please select Prisma when using MongoDB."
   );
 
   console.log("");
@@ -159,21 +207,26 @@ if (
 // ==================================================
 
 function getDesktopPath() {
-  const homeDirectory = os.homedir();
+  const homeDirectory =
+    homedir();
 
-  const oneDriveDesktop = path.join(
-    homeDirectory,
-    "OneDrive",
-    "Desktop"
-  );
+  const oneDriveDesktop =
+    join(
+      homeDirectory,
+      "OneDrive",
+      "Desktop"
+    );
 
-  const normalDesktop = path.join(
-    homeDirectory,
-    "Desktop"
-  );
+  const normalDesktop =
+    join(
+      homeDirectory,
+      "Desktop"
+    );
 
   if (
-    fs.existsSync(oneDriveDesktop)
+    existsSync(
+      oneDriveDesktop
+    )
   ) {
     return oneDriveDesktop;
   }
@@ -182,28 +235,44 @@ function getDesktopPath() {
 }
 
 // ==================================================
-// DESTINATION
+// DESTINATION DIRECTORY
 // ==================================================
 
 const destinationDirectory =
   customDestination
-    ? path.resolve(customDestination)
+    ? resolve(customDestination)
     : getDesktopPath();
 
 // ==================================================
 // PROJECT PATH
 // ==================================================
 
-const projectPath = path.join(
-  destinationDirectory,
-  projectName
-);
+const projectPath =
+  join(
+    destinationDirectory,
+    projectName
+  );
 
 // ==================================================
-// EXISTING PROJECT
+// TEMPLATE PATH
 // ==================================================
 
-if (fs.existsSync(projectPath)) {
+const templatePath =
+  join(
+    __dirname,
+    "..",
+    "templates"
+  );
+
+// ==================================================
+// EXISTING PROJECT CHECK
+// ==================================================
+
+if (
+  existsSync(
+    projectPath
+  )
+) {
   console.log("");
   console.log(
     `❌ Project "${projectName}" already exists.`
@@ -221,16 +290,14 @@ if (fs.existsSync(projectPath)) {
 }
 
 // ==================================================
-// TEMPLATE PATH
+// TEMPLATE CHECK
 // ==================================================
 
-const templatePath = path.join(
-  __dirname,
-  "..",
-  "templates"
-);
-
-if (!fs.existsSync(templatePath)) {
+if (
+  !existsSync(
+    templatePath
+  )
+) {
   console.log("");
   console.log(
     "❌ Templates folder not found."
@@ -306,9 +373,12 @@ console.log("");
 // ==================================================
 
 function createDirectory(directory) {
-  fs.mkdirSync(directory, {
-    recursive: true
-  });
+  mkdirSync(
+    directory,
+    {
+      recursive: true
+    }
+  );
 }
 
 // ==================================================
@@ -319,38 +389,50 @@ function copyDirectory(
   source,
   destination
 ) {
-  if (!fs.existsSync(source)) {
+  if (
+    !existsSync(source)
+  ) {
     throw new Error(
       `Source directory does not exist: ${source}`
     );
   }
 
-  createDirectory(destination);
+  createDirectory(
+    destination
+  );
 
-  const items = fs.readdirSync(source);
+  const items =
+    readdirSync(source);
 
-  for (const item of items) {
-    const sourcePath = path.join(
-      source,
-      item
-    );
+  for (
+    const item of items
+  ) {
+    const sourcePath =
+      join(
+        source,
+        item
+      );
 
-    const destinationPath = path.join(
-      destination,
-      item
-    );
+    const destinationPath =
+      join(
+        destination,
+        item
+      );
 
-    const stats = fs.statSync(
-      sourcePath
-    );
+    const stats =
+      statSync(
+        sourcePath
+      );
 
-    if (stats.isDirectory()) {
+    if (
+      stats.isDirectory()
+    ) {
       copyDirectory(
         sourcePath,
         destinationPath
       );
     } else {
-      fs.copyFileSync(
+      copyFileSync(
         sourcePath,
         destinationPath
       );
@@ -359,33 +441,51 @@ function copyDirectory(
 }
 
 // ==================================================
-// CREATE EMPTY FOLDERS
+// CREATE BACKEND FOLDERS
 // ==================================================
 
 function createEmptyFolders() {
   const folders = [
     "src",
+
     "src/config",
+
     "src/constants",
+
     "src/controllers",
+
     "src/db",
+
     "src/middlewares",
+
     "src/models",
+
     "src/repositories",
+
     "src/routes",
+
     "src/services",
+
     "src/types",
+
     "src/utils",
+
     "src/validations",
+
     "prisma",
+
     "tests",
+
     "uploads",
+
     "logs"
   ];
 
-  for (const folder of folders) {
+  for (
+    const folder of folders
+  ) {
     createDirectory(
-      path.join(
+      join(
         projectPath,
         folder
       )
@@ -398,29 +498,75 @@ function createEmptyFolders() {
 // ==================================================
 
 function updatePackageName() {
-  const packageJsonPath = path.join(
-    projectPath,
-    "package.json"
-  );
+  const packageJsonPath =
+    join(
+      projectPath,
+      "package.json"
+    );
 
-  if (!fs.existsSync(packageJsonPath)) {
+  if (
+    !existsSync(
+      packageJsonPath
+    )
+  ) {
     throw new Error(
       "package.json not found."
     );
   }
 
-  const packageJson = JSON.parse(
-    fs.readFileSync(
-      packageJsonPath,
-      "utf8"
-    )
+  const packageJson =
+    JSON.parse(
+      readFileSync(
+        packageJsonPath,
+        "utf8"
+      )
+    );
+
+  packageJson.name =
+    projectName
+      .toLowerCase()
+      .replace(
+        /\s+/g,
+        "-"
+      );
+
+  packageJson.description =
+    "Generated by Faiz Backend Generator";
+
+  packageJson.main =
+    "src/server.js";
+
+  packageJson.type =
+    "module";
+
+  packageJson.scripts =
+    packageJson.scripts || {};
+
+  packageJson.scripts.dev =
+    "nodemon src/server.js";
+
+  packageJson.scripts.start =
+    "node src/server.js";
+
+  packageJson.scripts.test =
+    packageJson.scripts.test ||
+    "jest";
+
+  fsWritePackage(
+    packageJsonPath,
+    packageJson
   );
+}
 
-  packageJson.name = projectName
-    .toLowerCase()
-    .replace(/\s+/g, "-");
+// ==================================================
+// WRITE PACKAGE JSON
+// ==================================================
 
-  fs.writeFileSync(
+function fsWritePackage(
+  packageJsonPath,
+  packageJson
+) {
+  writeFileSync(
     packageJsonPath,
     JSON.stringify(
       packageJson,
@@ -438,16 +584,22 @@ function removeDependency(
   packageJson,
   packageName
 ) {
-  if (packageJson.dependencies) {
-    delete packageJson.dependencies[
-      packageName
-    ];
+  if (
+    packageJson.dependencies
+  ) {
+    delete packageJson
+      .dependencies[
+        packageName
+      ];
   }
 
-  if (packageJson.devDependencies) {
-    delete packageJson.devDependencies[
-      packageName
-    ];
+  if (
+    packageJson.devDependencies
+  ) {
+    delete packageJson
+      .devDependencies[
+        packageName
+      ];
   }
 }
 
@@ -490,7 +642,9 @@ function addDevDependency(
 // ==================================================
 
 function getDatabaseUrl() {
-  switch (database) {
+  switch (
+    database
+  ) {
     case "mysql":
       return "mysql://root:password@localhost:3306/my_database";
 
@@ -509,54 +663,91 @@ function getDatabaseUrl() {
 }
 
 // ==================================================
-// ENVIRONMENT
+// UPDATE ENVIRONMENT
 // ==================================================
 
 function updateEnvironmentFile() {
-  const envExamplePath = path.join(
-    projectPath,
-    ".env.example"
-  );
+  const envExamplePath =
+    join(
+      projectPath,
+      ".env.example"
+    );
 
-  if (!fs.existsSync(envExamplePath)) {
-    return;
+  let envContent = "";
+
+  if (
+    existsSync(
+      envExamplePath
+    )
+  ) {
+    envContent =
+      readFileSync(
+        envExamplePath,
+        "utf8"
+      );
   }
-
-  let envContent = fs.readFileSync(
-    envExamplePath,
-    "utf8"
-  );
 
   const databaseUrl =
     getDatabaseUrl();
 
+  const databaseLine =
+    `DATABASE_URL="${databaseUrl}"`;
+
   if (
-    envContent.includes(
-      "DATABASE_URL="
+    envContent.match(
+      /^DATABASE_URL=.*$/m
     )
   ) {
-    envContent = envContent.replace(
-      /^DATABASE_URL=.*$/m,
-      `DATABASE_URL="${databaseUrl}"`
-    );
+    envContent =
+      envContent.replace(
+        /^DATABASE_URL=.*$/m,
+        databaseLine
+      );
   } else {
     envContent +=
-      `\nDATABASE_URL="${databaseUrl}"\n`;
+      `\n${databaseLine}\n`;
   }
 
-  fs.writeFileSync(
+  if (
+    !envContent.match(
+      /^PORT=.*$/m
+    )
+  ) {
+    envContent +=
+      "\nPORT=5000\n";
+  }
+
+  if (
+    !envContent.match(
+      /^JWT_SECRET=.*$/m
+    )
+  ) {
+    envContent +=
+      "\nJWT_SECRET=change_this_secret\n";
+  }
+
+  if (
+    !envContent.match(
+      /^NODE_ENV=.*$/m
+    )
+  ) {
+    envContent +=
+      "\nNODE_ENV=development\n";
+  }
+
+  writeFileSync(
     envExamplePath,
     envContent
   );
 }
 
 // ==================================================
-// PRISMA
+// CONFIGURE PRISMA
 // ==================================================
 
 function configurePrisma() {
   const prismaDirectory =
-    path.join(
+    join(
       projectPath,
       "prisma"
     );
@@ -566,30 +757,42 @@ function configurePrisma() {
   );
 
   const schemaPath =
-    path.join(
+    join(
       prismaDirectory,
       "schema.prisma"
     );
 
-  let provider = "mysql";
+  let provider =
+    "mysql";
 
-  if (database === "postgresql") {
-    provider = "postgresql";
+  if (
+    database === "postgresql"
+  ) {
+    provider =
+      "postgresql";
   }
 
-  if (database === "mongodb") {
-    provider = "mongodb";
+  if (
+    database === "mongodb"
+  ) {
+    provider =
+      "mongodb";
   }
 
-  if (database === "sqlite") {
-    provider = "sqlite";
+  if (
+    database === "sqlite"
+  ) {
+    provider =
+      "sqlite";
   }
 
   let idField = `
   id        Int      @id @default(autoincrement())
 `;
 
-  if (database === "mongodb") {
+  if (
+    database === "mongodb"
+  ) {
     idField = `
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
 `;
@@ -618,25 +821,29 @@ ${idField}
 }
 `;
 
-  fs.writeFileSync(
+  writeFileSync(
     schemaPath,
     schema
   );
 }
 
 // ==================================================
-// DRIZZLE
+// CONFIGURE DRIZZLE
 // ==================================================
 
 function configureDrizzle() {
   const prismaDirectory =
-    path.join(
+    join(
       projectPath,
       "prisma"
     );
 
-  if (fs.existsSync(prismaDirectory)) {
-    fs.rmSync(
+  if (
+    existsSync(
+      prismaDirectory
+    )
+  ) {
+    rmSync(
       prismaDirectory,
       {
         recursive: true,
@@ -646,7 +853,7 @@ function configureDrizzle() {
   }
 
   const drizzleDirectory =
-    path.join(
+    join(
       projectPath,
       "drizzle"
     );
@@ -655,9 +862,16 @@ function configureDrizzle() {
     drizzleDirectory
   );
 
-  let schemaContent = "";
+  let schemaContent =
+    "";
 
-  if (database === "mysql") {
+  // ------------------------------------------------
+  // MYSQL
+  // ------------------------------------------------
+
+  if (
+    database === "mysql"
+  ) {
     schemaContent = `import {
   mysqlTable,
   int,
@@ -690,7 +904,13 @@ export const users = mysqlTable("users", {
 `;
   }
 
-  if (database === "postgresql") {
+  // ------------------------------------------------
+  // POSTGRESQL
+  // ------------------------------------------------
+
+  if (
+    database === "postgresql"
+  ) {
     schemaContent = `import {
   pgTable,
   serial,
@@ -722,7 +942,13 @@ export const users = pgTable("users", {
 `;
   }
 
-  if (database === "sqlite") {
+  // ------------------------------------------------
+  // SQLITE
+  // ------------------------------------------------
+
+  if (
+    database === "sqlite"
+  ) {
     schemaContent = `import {
   sqliteTable,
   integer,
@@ -748,35 +974,69 @@ export const users = sqliteTable("users", {
 `;
   }
 
-  fs.writeFileSync(
-    path.join(
+  const schemaPath =
+    join(
       drizzleDirectory,
       "schema.js"
-    ),
+    );
+
+  writeFileSync(
+    schemaPath,
     schemaContent
   );
 
-  const dialect =
-    database === "postgresql"
-      ? "postgresql"
-      : database === "sqlite"
-        ? "sqlite"
-        : "mysql";
+  // ------------------------------------------------
+  // DRIZZLE DIALECT
+  // ------------------------------------------------
 
-  const configContent = `import { defineConfig } from "drizzle-kit";
+  let dialect =
+    "mysql";
+
+  if (
+    database === "postgresql"
+  ) {
+    dialect =
+      "postgresql";
+  }
+
+  if (
+    database === "sqlite"
+  ) {
+    dialect =
+      "sqlite";
+  }
+
+  let credentials = "";
+
+  if (
+    database === "sqlite"
+  ) {
+    credentials = `
+  dbCredentials: {
+    url: process.env.DATABASE_URL
+  }
+`;
+  } else {
+    credentials = `
+  dbCredentials: {
+    url: process.env.DATABASE_URL
+  }
+`;
+  }
+
+  const configContent =
+`import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
   schema: "./drizzle/schema.js",
   out: "./drizzle/migrations",
   dialect: "${dialect}",
-  dbCredentials: {
-    url: process.env.DATABASE_URL
-  }
+${credentials}
 });
 `;
 
-  fs.writeFileSync(
-    path.join(
+  writeFileSync(
+    join(
       projectPath,
       "drizzle.config.js"
     ),
@@ -790,56 +1050,50 @@ export default defineConfig({
 
 function configureDatabase() {
   const packageJsonPath =
-    path.join(
+    join(
       projectPath,
       "package.json"
     );
 
-  const packageJson = JSON.parse(
-    fs.readFileSync(
-      packageJsonPath,
-      "utf8"
-    )
-  );
+  const packageJson =
+    JSON.parse(
+      readFileSync(
+        packageJsonPath,
+        "utf8"
+      )
+    );
 
-  // Remove ORM packages
-  removeDependency(
-    packageJson,
-    "@prisma/client"
-  );
+  // ------------------------------------------------
+  // REMOVE OLD DATABASE PACKAGES
+  // ------------------------------------------------
 
-  removeDependency(
-    packageJson,
-    "prisma"
-  );
-
-  removeDependency(
-    packageJson,
-    "drizzle-orm"
-  );
-
-  removeDependency(
-    packageJson,
-    "drizzle-kit"
-  );
-
-  removeDependency(
-    packageJson,
-    "mysql2"
-  );
-
-  removeDependency(
-    packageJson,
-    "pg"
-  );
-
-  removeDependency(
-    packageJson,
+  const packagesToRemove = [
+    "@prisma/client",
+    "prisma",
+    "drizzle-orm",
+    "drizzle-kit",
+    "mysql2",
+    "pg",
     "better-sqlite3"
-  );
+  ];
 
-  // Prisma
-  if (orm === "prisma") {
+  for (
+    const packageName
+      of packagesToRemove
+  ) {
+    removeDependency(
+      packageJson,
+      packageName
+    );
+  }
+
+  // ------------------------------------------------
+  // PRISMA
+  // ------------------------------------------------
+
+  if (
+    orm === "prisma"
+  ) {
     addDependency(
       packageJson,
       "@prisma/client",
@@ -853,10 +1107,28 @@ function configureDatabase() {
     );
 
     configurePrisma();
+
+    packageJson.scripts =
+      packageJson.scripts || {};
+
+    packageJson.scripts[
+      "prisma:generate"
+    ] =
+      "prisma generate";
+
+    packageJson.scripts[
+      "prisma:push"
+    ] =
+      "prisma db push";
   }
 
-  // Drizzle
-  if (orm === "drizzle") {
+  // ------------------------------------------------
+  // DRIZZLE
+  // ------------------------------------------------
+
+  if (
+    orm === "drizzle"
+  ) {
     addDependency(
       packageJson,
       "drizzle-orm",
@@ -869,7 +1141,9 @@ function configureDatabase() {
       "^0.31.4"
     );
 
-    if (database === "mysql") {
+    if (
+      database === "mysql"
+    ) {
       addDependency(
         packageJson,
         "mysql2",
@@ -877,7 +1151,9 @@ function configureDatabase() {
       );
     }
 
-    if (database === "postgresql") {
+    if (
+      database === "postgresql"
+    ) {
       addDependency(
         packageJson,
         "pg",
@@ -885,7 +1161,9 @@ function configureDatabase() {
       );
     }
 
-    if (database === "sqlite") {
+    if (
+      database === "sqlite"
+    ) {
       addDependency(
         packageJson,
         "better-sqlite3",
@@ -894,37 +1172,53 @@ function configureDatabase() {
     }
 
     configureDrizzle();
+
+    packageJson.scripts =
+      packageJson.scripts || {};
+
+    packageJson.scripts[
+      "db:generate"
+    ] =
+      "drizzle-kit generate";
+
+    packageJson.scripts[
+      "db:migrate"
+    ] =
+      "drizzle-kit migrate";
   }
 
-  fs.writeFileSync(
+  // ------------------------------------------------
+  // WRITE PACKAGE
+  // ------------------------------------------------
+
+  fsWritePackage(
     packageJsonPath,
-    JSON.stringify(
-      packageJson,
-      null,
-      2
-    ) + "\n"
+    packageJson
   );
 }
 
 // ==================================================
-// AUTHENTICATION
+// CONFIGURE AUTHENTICATION
 // ==================================================
 
 function configureAuthentication() {
   const packageJsonPath =
-    path.join(
+    join(
       projectPath,
       "package.json"
     );
 
-  const packageJson = JSON.parse(
-    fs.readFileSync(
-      packageJsonPath,
-      "utf8"
-    )
-  );
+  const packageJson =
+    JSON.parse(
+      readFileSync(
+        packageJsonPath,
+        "utf8"
+      )
+    );
 
-  if (authentication) {
+  if (
+    authentication
+  ) {
     addDependency(
       packageJson,
       "jsonwebtoken",
@@ -948,35 +1242,34 @@ function configureAuthentication() {
     );
   }
 
-  fs.writeFileSync(
+  fsWritePackage(
     packageJsonPath,
-    JSON.stringify(
-      packageJson,
-      null,
-      2
-    ) + "\n"
+    packageJson
   );
 }
 
 // ==================================================
-// VALIDATION
+// CONFIGURE VALIDATION
 // ==================================================
 
 function configureValidation() {
   const packageJsonPath =
-    path.join(
+    join(
       projectPath,
       "package.json"
     );
 
-  const packageJson = JSON.parse(
-    fs.readFileSync(
-      packageJsonPath,
-      "utf8"
-    )
-  );
+  const packageJson =
+    JSON.parse(
+      readFileSync(
+        packageJsonPath,
+        "utf8"
+      )
+    );
 
-  if (validation) {
+  if (
+    validation
+  ) {
     addDependency(
       packageJson,
       "zod",
@@ -989,13 +1282,9 @@ function configureValidation() {
     );
   }
 
-  fs.writeFileSync(
+  fsWritePackage(
     packageJsonPath,
-    JSON.stringify(
-      packageJson,
-      null,
-      2
-    ) + "\n"
+    packageJson
   );
 }
 
@@ -1004,6 +1293,10 @@ function configureValidation() {
 // ==================================================
 
 try {
+  // ------------------------------------------------
+  // CREATE PROJECT
+  // ------------------------------------------------
+
   console.log(
     "📁 Creating project folder..."
   );
@@ -1018,6 +1311,10 @@ try {
 
   console.log("");
 
+  // ------------------------------------------------
+  // FOLDER STRUCTURE
+  // ------------------------------------------------
+
   console.log(
     "📂 Creating folder structure..."
   );
@@ -1029,6 +1326,10 @@ try {
   );
 
   console.log("");
+
+  // ------------------------------------------------
+  // COPY TEMPLATES
+  // ------------------------------------------------
 
   console.log(
     "📄 Copying backend templates..."
@@ -1045,6 +1346,10 @@ try {
 
   console.log("");
 
+  // ------------------------------------------------
+  // PACKAGE.JSON
+  // ------------------------------------------------
+
   console.log(
     "⚙️ Configuring package.json..."
   );
@@ -1056,6 +1361,10 @@ try {
   );
 
   console.log("");
+
+  // ------------------------------------------------
+  // DATABASE
+  // ------------------------------------------------
 
   console.log(
     "🗄️ Configuring database..."
@@ -1069,19 +1378,33 @@ try {
 
   console.log("");
 
+  // ------------------------------------------------
+  // AUTHENTICATION
+  // ------------------------------------------------
+
   console.log(
     "🔐 Configuring authentication..."
   );
 
   configureAuthentication();
 
-  console.log(
+  if (
     authentication
-      ? "✅ JWT Authentication enabled"
-      : "⏭️ JWT Authentication disabled"
-  );
+  ) {
+    console.log(
+      "✅ JWT Authentication enabled"
+    );
+  } else {
+    console.log(
+      "⏭️ JWT Authentication disabled"
+    );
+  }
 
   console.log("");
+
+  // ------------------------------------------------
+  // VALIDATION
+  // ------------------------------------------------
 
   console.log(
     "✅ Configuring validation..."
@@ -1089,13 +1412,23 @@ try {
 
   configureValidation();
 
-  console.log(
+  if (
     validation
-      ? "✅ Zod Validation enabled"
-      : "⏭️ Zod Validation disabled"
-  );
+  ) {
+    console.log(
+      "✅ Zod Validation enabled"
+    );
+  } else {
+    console.log(
+      "⏭️ Zod Validation disabled"
+    );
+  }
 
   console.log("");
+
+  // ------------------------------------------------
+  // ENVIRONMENT
+  // ------------------------------------------------
 
   console.log(
     "🌱 Configuring environment..."
@@ -1108,6 +1441,10 @@ try {
   );
 
   console.log("");
+
+  // ------------------------------------------------
+  // INSTALL DEPENDENCIES
+  // ------------------------------------------------
 
   console.log(
     "📦 Installing dependencies..."
@@ -1124,6 +1461,10 @@ try {
   );
 
   console.log("");
+
+  // ------------------------------------------------
+  // SUCCESS
+  // ------------------------------------------------
 
   console.log(
     "========================================"
@@ -1155,7 +1496,27 @@ try {
     `🔧 ORM: ${orm}`
   );
 
+  console.log(
+    `🔐 Authentication: ${
+      authentication
+        ? "Enabled"
+        : "Disabled"
+    }`
+  );
+
+  console.log(
+    `✅ Validation: ${
+      validation
+        ? "Enabled"
+        : "Disabled"
+    }`
+  );
+
   console.log("");
+
+  // ------------------------------------------------
+  // NEXT STEPS
+  // ------------------------------------------------
 
   console.log(
     "➡️ Next steps:"
@@ -1171,15 +1532,27 @@ try {
     "copy .env.example .env"
   );
 
-  if (orm === "prisma") {
+  if (
+    orm === "prisma"
+  ) {
     console.log(
-      "npx prisma generate"
+      "npm run prisma:generate"
+    );
+
+    console.log(
+      "npm run prisma:push"
     );
   }
 
-  if (orm === "drizzle") {
+  if (
+    orm === "drizzle"
+  ) {
     console.log(
-      "npx drizzle-kit generate"
+      "npm run db:generate"
+    );
+
+    console.log(
+      "npm run db:migrate"
     );
   }
 
@@ -1213,8 +1586,38 @@ try {
   console.log("");
 
   console.error(
-    error.message
+    error.stack || error.message
   );
+
+  console.log("");
+
+  // ------------------------------------------------
+  // CLEANUP FAILED PROJECT
+  // ------------------------------------------------
+
+  if (
+    existsSync(
+      projectPath
+    )
+  ) {
+    try {
+      rmSync(
+        projectPath,
+        {
+          recursive: true,
+          force: true
+        }
+      );
+
+      console.log(
+        "🧹 Failed project folder removed."
+      );
+    } catch {
+      console.log(
+        "⚠️ Could not remove failed project folder."
+      );
+    }
+  }
 
   console.log("");
 

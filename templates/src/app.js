@@ -1,26 +1,30 @@
-const express = require("express");
-const cors = require("cors");
+import express from 'express';
+import cors from 'cors';
 
-const routes = require("./routes");
-const { errorHandler } = require("./middlewares/error.middleware");
+import routes from './routes/index.js';
+import { errorMiddleware } from './middlewares/error.middleware.js';
 
 const app = express();
 
 app.use(cors());
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Backend is running",
-    timestamp: new Date().toISOString()
-  });
+app.use(
+	express.urlencoded({
+		extended: true,
+	}),
+);
+
+app.get('/', (req, res) => {
+	res.json({
+		success: true,
+		message: 'API is running',
+	});
 });
 
-app.use("/api", routes);
+app.use('/api', routes);
 
-app.use(errorHandler);
+app.use(errorMiddleware);
 
-module.exports = app;
+export default app;
