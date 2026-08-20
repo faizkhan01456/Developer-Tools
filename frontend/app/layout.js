@@ -1,8 +1,9 @@
-import "../styles/globals.css";
+import "/styles/globals.css";
 
 export const metadata = {
   title: "Faiz Generator",
-  description: "Developer project generator"
+  description:
+    "Generate professional Node.js backend projects in seconds.",
 };
 
 export default function RootLayout({ children }) {
